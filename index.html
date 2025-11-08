@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Příbramské Stovky</title>
+<style>
+:root{
+  --bg:#0b0b0d; --card:#151518; --accent:#d32f2f; --muted:#9aa0a6; --white:#fff;
+  --radius:10px;
+}
+*{box-sizing:border-box;font-family:Inter,system-ui,Arial,sans-serif}
+body{margin:0;background:var(--bg);color:var(--white);min-height:100vh}
+.header{display:flex;align-items:center;gap:12px;padding:12px 20px;background:#111;position:sticky;top:0;z-index:50}
+.logo{width:54px;height:54px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#9b1f1f);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;cursor:pointer}
+.title{font-size:1.25rem}
+.nav{margin-left:auto;display:flex;gap:8px}
+.nav a{color:var(--muted);text-decoration:none;padding:8px 12px;border-radius:8px;cursor:pointer}
+.nav a.active,.nav a:hover{background:rgba(255,255,255,0.03);color:var(--white)}
+.container{max-width:1100px;margin:28px auto;padding:0 18px}
+.card{background:var(--card);padding:18px;border-radius:var(--radius);box-shadow:0 8px 30px rgba(0,0,0,0.6);margin-bottom:16px}
+.footer{display:flex;justify-content:space-between;align-items:center;padding:14px 0;color:var(--muted)}
+.admin-btn{background:var(--accent);border:none;padding:8px 12px;border-radius:8px;color:white;cursor:pointer}
+input,textarea,select{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:var(--white);margin-top:8px}
+button{cursor:pointer}
+.tabs{display:flex;gap:12px}
+section{display:none}
+section.active{display:block}
+.gallery-folders{display:flex;flex-wrap:wrap;gap:12px}
+.folder{min-width:160px;padding:12px;border-radius:8px;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);cursor:pointer}
+.photos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-top:12px}
+.photos-grid img{width:100%;height:120px;object-fit:cover;border-radius:8px;cursor:pointer}
+.admin-panel{margin-top:12px;border-top:1px dashed rgba(255,255,255,0.03);padding-top:12px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;z-index:200}
+.modal .box{background:var(--card);padding:18px;border-radius:10px;width:320px}
+.small{color:var(--muted);font-size:0.95rem}
+.link{color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div style="display:flex;align-items:center;gap:12px">
+    <div class="logo" id="logoDisplay">PS</div>
+    <div>
+      <div class="title" id="siteTitle">Příbramské Stovky</div>
+      <div class="small">Kalendář a galerie běžeckých závodů</div>
+    </div>
+  </div>
+  <nav class="nav">
+    <a class="tablink active" data-tab="home">Domů</a>
+    <a class="tablink" data-tab="calendar">Kalendář</a>
+    <a class="tablink" data-tab="gallery">Galerie</a>
+    <a class="tablink" data-tab="contact">Kontakt</a>
+    <a class="tablink" data-tab="administration" id="adminTab" style="display:none">Administrace</a>
+  </nav>
+</header>
+
+<main class="container">
+  <!-- DOMŮ -->
+  <section id="home" class="active">
+    <div class="card" id="homePosts"></div>
+    <div id="homeAdmin" class="admin-panel" style="display:none">
+      <h3>Přidat příspěvek</h3>
+      <input id="postTitle" placeholder="Nadpis">
+      <input id="postImage" type="file" accept="image/*">
+      <textarea id="postText" placeholder="Text příspěvku"></textarea>
+      <input id="postDate" type="date">
+      <div style="margin-top:8px">
+        <button class="admin-btn" onclick="addPost()">Přidat</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- KALENDÁŘ -->
+  <section id="calendar">
+    <div class="card" id="calendarList"></div>
+    <div id="calendarAdmin" class="admin-panel" style="display:none">
+      <h3>Přidat závod</h3>
+      <input id="eventName" placeholder="Název">
+      <input id="eventDate" type="date">
+      <input id="eventPlace" placeholder="Místo">
+      <textarea id="eventInfo" placeholder="Info"></textarea>
+      <input id="eventTrack" placeholder="Dráhy">
+      <input id="eventCategory" placeholder="Kategorie">
+      <div style="margin-top:8px">
+        <button class="admin-btn" onclick="addEvent()">Přidat závod</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- GALERIE -->
+  <section id="gallery">
+    <div class="card">
+      <div id="foldersView">
+        <input id="newFolderName" placeholder="Nová složka">
+        <button class="admin-btn" onclick="createFolder()">Vytvořit složku</button>
+        <div class="gallery-folders" id="foldersList"></div>
+      </div>
+      <div id="folderPhotos" style="display:none">
+        <button class="admin-btn" onclick="backToFolders()">← Zpět</button>
+        <h3 id="currentFolderTitle"></h3>
+        <div class="photos-grid" id="photosGrid"></div>
+        <input type="file" id="fileInput" multiple>
+        <input id="fileCaption" placeholder="Popis (volitelné)">
+        <button class="admin-btn" onclick="uploadFiles()">Nahrát</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- KONTAKT -->
+  <section id="contact">
+    <div class="card" id="contactBlock"></div>
+    <div id="contactAdmin" class="admin-panel" style="display:none">
+      <h3>Upravit kontakt</h3>
+      <input id="contactEmail" placeholder="Email">
+      <input id="contactPhone" placeholder="Telefon">
+      <input id="contactOrg" placeholder="Organizátor">
+      <button class="admin-btn" onclick="saveContact()">Uložit</button>
+    </div>
+  </section>
+
+  <!-- ADMINISTRACE -->
+  <section id="administration" style="display:none">
+    <div class="card">
+      <h2>Administrace superadmin</h2>
+      <div id="adminList"></div>
+      <input id="newAdminName" placeholder="Jméno">
+      <input id="newAdminPass" placeholder="Kód">
+      <label><input type="checkbox" id="canEditHome"> Domů</label>
+      <label><input type="checkbox" id="canEditCalendar"> Kalendář</label>
+      <label><input type="checkbox" id="canEditGallery"> Galerie</label>
+      <label><input type="checkbox" id="canEditContact"> Kontakt</label>
+      <button class="admin-btn" onclick="addAdmin()">Přidat pořadatele</button>
+    </div>
+  </section>
+</main>
+
+<div class="footer card">
+  <div class="small">© <span id="siteYear"></span> Příbramské Stovky</div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <div id="adminStatus" class="small">Nejste přihlášen</div>
+    <button class="admin-btn" onclick="openAdminModal()">Pořadatel</button>
+  </div>
+</div>
+
+<div class="modal" id="adminModal">
+  <div class="box">
+    <h3>Přihlášení</h3>
+    <input id="adminPass" type="password" placeholder="Kód">
+    <div style="margin-top:12px;display:flex;gap:8px;justify-content:center">
+      <button class="admin-btn" onclick="loginAdmin()">Přihlásit</button>
+      <button class="admin-btn" onclick="closeAdminModal()">Zrušit</button>
+    </div>
+    <div style="margin-top:12px;text-align:center">
+      <button class="admin-btn" id="logoutBtn" onclick="logoutAdmin()" style="display:none">Odhlásit</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let DATA_KEY='psData_v2';
+let state={
+  admins:[{name:'SuperAdmin',code:'2711',super:true,home:true,calendar:true,gallery:true,contact:true}],
+  admin:null,
+  posts:[], events:[], gallery:{}, contact:{email:'info@pribramskestovky.cz',phone:'+420123456789',org:'SDH Příbram'}
+};
+
+function loadState(){const raw=localStorage.getItem(DATA_KEY);if(raw){Object.assign(state,JSON.parse(raw));}}
+function saveState(){localStorage.setItem(DATA_KEY,JSON.stringify(state)); renderAll();}
+function renderAll(){
+  document.getElementById('siteYear').textContent=new Date().getFullYear();
+  renderPosts(); renderCalendar(); renderGallery(); renderContact(); renderAdmin();
+}
+function renderPosts(){
+  const root=document.getElementById('homePosts'); root.innerHTML='';
+  state.posts.forEach(p=>{
+    const div=document.createElement('div'); div.className='card';
+    div.innerHTML=`<strong>${p.title}</strong> ${p.date?`(${p.date})`:''}<br>${p.text}`;
+    root.appendChild(div);
+  });
+  document.getElementById('homeAdmin').style.display=(state.admin && state.admin.home)?'block':'none';
+}
+function addPost(){
+  const t=document.getElementById('postTitle').value; const d=document.getElementById('postDate').value;
+  const txt=document.getElementById('postText').value;
+  state.posts.push({title:t,date:d,text:txt});
+  document.getElementById('postTitle').value=''; document.getElementById('postDate').value=''; document.getElementById('postText').value='';
+  saveState();
+}
+function renderCalendar(){const root=document.getElementById('calendarList'); root.innerHTML=''; state.events.forEach(e=>{const div=document.createElement('div'); div.className='card'; div.innerHTML=`<strong>${e.name}</strong> ${e.date?`(${e.date})`:''}<br>${e.place||''}<br>${e.info||''}<br>Dráhy: ${e.track||''} Kategorie: ${e.category||''}`; root.appendChild(div);}); document.getElementById('calendarAdmin').style.display=(state.admin && state.admin.calendar)?'block':'none';}
+function addEvent(){
+  const n=document.getElementById('eventName').value; const d=document.getElementById('eventDate').value;
+  const pl=document.getElementById('eventPlace').value; const info=document.getElementById('eventInfo').value;
+  const tr=document.getElementById('eventTrack').value; const cat=document.getElementById('eventCategory').value;
+  state.events.push({name:n,date:d,place:pl,info:info,track:tr,category:cat});
+  document.getElementById('eventName').value='';document.getElementById('eventDate').value='';
+  document.getElementById('eventPlace').value='';document.getElementById('eventInfo').value='';
+  document.getElementById('eventTrack').value='';document.getElementById('eventCategory').value='';
+  saveState();
+}
+function renderGallery(){
+  const list=document.getElementById('foldersList'); list.innerHTML='';
+  Object.keys(state.gallery).forEach(n=>{const div=document.createElement('div'); div.className='folder'; div.innerHTML=`<strong>${n}</strong> (${state.gallery[n].photos.length} fotek)`; div.onclick=()=>showFolder(n); list.appendChild(div);});
+  document.getElementById('foldersView').style.display=(state.admin && state.admin.gallery)?'block':'none';
+}
+function createFolder(){
+  const name=document.getElementById('newFolderName').value.trim(); if(!name)return alert('Vyplň název složky!');
+  if(state.gallery[name])return alert('Složka existuje!'); state.gallery[name]={photos:[]}; document.getElementById('newFolderName').value=''; saveState();
+}
+function showFolder(name){
+  document.getElementById('foldersView').style.display='none'; document.getElementById('folderPhotos').style.display='block';
+  document.getElementById('currentFolderTitle').textContent=name; renderPhotos(name);
+}
+function backToFolders(){document.getElementById('foldersView').style.display='block';document.getElementById('folderPhotos').style.display='none';}
+function renderPhotos(folder){const grid=document.getElementById('photosGrid'); grid.innerHTML=''; state.gallery[folder].photos.forEach(p=>{const img=document.createElement('img'); img.src=p.data; img.title=p.caption||''; grid.appendChild(img);});}
+function uploadFiles(){const folder=document.getElementById('currentFolderTitle').textContent; if(!folder) return alert('Vyber složku!'); const files=document.getElementById('fileInput').files; if(!files.length)return alert('Vyber soubory!'); const caption=document.getElementById('fileCaption').value; Array.from(files).forEach(f=>{const reader=new FileReader(); reader.onload=function(e){state.gallery[folder].photos.push({data:e.target.result,caption:caption}); saveState();}; reader.readAsDataURL(f);}); document.getElementById('fileInput').value=''; document.getElementById('fileCaption').value='';}
+function renderContact(){
+  const c=document.getElementById('contactBlock'); c.innerHTML=`<strong>Email:</strong> ${state.contact.email}<br><strong>Tel:</strong> ${state.contact.phone}<br><strong>Organizátor:</strong> ${state.contact.org}`;
+  document.getElementById('contactAdmin').style.display=(state.admin && state.admin.contact)?'block':'none';
+}
+function saveContact(){state.contact.email=document.getElementById('contactEmail').value; state.contact.phone=document.getElementById('contactPhone').value; state.contact.org=document.getElementById('contactOrg').value; saveState();}
+function openAdminModal(){document.getElementById('adminModal').style.display='flex'; document.getElementById('adminPass').focus();}
+function closeAdminModal(){document.getElementById('adminModal').style.display='none';}
+function loginAdmin(){const pass=document.getElementById('adminPass').value.trim(); const admin=state.admins.find(a=>a.code===pass); if(!admin){alert('Špatný kód!'); return;} state.admin=JSON.parse(JSON.stringify(admin)); closeAdminModal(); document.getElementById('adminTab').style.display=admin.super?'inline-block':'none'; document.getElementById('logoutBtn').style.display='inline-block'; renderAll(); alert('Úspěšně přihlášen');}
+function logoutAdmin(){state.admin=null; document.getElementById('adminTab').style.display='none'; document.getElementById('logoutBtn').style.display='none'; renderAll();}
+
+function addAdmin(){
+  const name=document.getElementById('newAdminName').value.trim(); const code=document.getElementById('newAdminPass').value.trim();
+  if(!name||!code)return alert('Vyplň jméno a kód!'); if(state.admins.some(a=>a.code===code)) return alert('Kód existuje!');
+  state.admins.push({name,code,home:document.getElementById('canEditHome').checked,calendar:document.getElementById('canEditCalendar').checked,gallery:document.getElementById('canEditGallery').checked,contact:document.getElementById('canEditContact').checked,super:false});
+  document.getElementById('newAdminName').value=''; document.getElementById('newAdminPass').value=''; document.getElementById('canEditHome').checked=false; document.getElementById('canEditCalendar').checked=false; document.getElementById('canEditGallery').checked=false; document.getElementById('canEditContact').checked=false;
+  renderAdminList(); saveState();
+}
+function renderAdmin(){renderAdminList();}
+function renderAdminList(){const root=document.getElementById('adminList'); root.innerHTML=''; state.admins.forEach(a=>{if(a.super)return; const div=document.createElement('div'); div.className='card'; div.innerHTML=`<strong>${a.name}</strong> · Kód: ${a.code}<br>Domů: ${a.home?'✔':'✖'} Kalendář: ${a.calendar?'✔':'✖'} Galerie: ${a.gallery?'✔':'✖'} Kontakt: ${a.contact?'✔':'✖'}`; root.appendChild(div);});}
+
+// TABS
+document.querySelectorAll('.tablink').forEach(tab=>{
+  tab.onclick=()=>{
+    document.querySelectorAll('.tablink').forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active');
+    document.querySelectorAll('main section').forEach(s=>s.classList.remove('active'));
+    const sel=document.getElementById(tab.dataset.tab); if(sel) sel.classList.add('active');
+  }
+});
+
+loadState();
+renderAll();
+</script>
+</body>
+</html>
